@@ -38,7 +38,7 @@ Opening ports increases the attack surface, so I offset it with **compensating c
 - `online-mode=true`: Xbox Live authentication is required, so gamertags can't be spoofed.
 - `allow-list=true`: deny by default. New players are added one at a time by an admin.
 - `default-player-permission-level=member`, `allow-cheats=false`, and **no operators at all**. There's no in-game account that can run commands, so there's nothing to steal or social-engineer. Admin commands are only possible from a shell on the VM.
-- **Discovery control:** the broadcaster bot uses `auto-follow: false`. Following the bot doesn't reveal the server; the admin has to accept the friend request.
+- **Discovery control:** the broadcaster bot uses `auto-follow: false` and `auto-friend: false`. Following the bot or sending it a request doesn't reveal the server; the admin approves every friend. Automatic friend expiry is off, so approved players aren't silently removed.
 
 ### Segmentation (Proxmox per-VM firewall)
 Enforced by the **hypervisor**, outside the VM, so a root-level compromise inside the VM can't switch it off.
@@ -52,6 +52,10 @@ OUT DROP 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 100.64.0.0/10, 169.254.0.0/1
 ```
 
 The VM can reach the internet (Xbox Live, Mojang updates, Debian mirrors) and **nothing private**: not the router UI, the Proxmox UI, other VMs, the NAS's management interface or IoT devices. The MAC filter (`macfilter: 1`) stops it from spoofing other machines' MAC addresses.
+
+### Remote administration
+- No management port is ever forwarded. Remote access goes through a private mesh VPN with a subnet router, so the game VM needs no extra software and its isolation rules don't change.
+- Each admin device has its own SSH key, which can be revoked individually. Password authentication stays off.
 
 ### Host hardening (Debian VM)
 - Minimal install: no desktop, only SSH and standard utilities.

@@ -88,6 +88,8 @@ Real-world troubleshooting is most of what this build was. Full write-ups are in
 - **A health check that lied.** The container reported "unhealthy" around the clock, because its probe uses RakNet and the server no longer answers it.
 - **Container permission puzzles.** One image runs as UID 1001, not 1000. Another needed a single Linux capability so the admin tool could find the server process after its privilege drop.
 - **Locking myself out safely.** Every firewall change was applied with an automatic 10-minute rollback, cancelled only after I'd proved access still worked.
+- **A WAN that quietly went private.** Correlating firewall and server logs showed the WAN had briefly taken a private lease after a gateway hiccup, which disabled the port forwards. One obvious fix cut the connection entirely and was reverted; shorter leases solved it.
+- **A bot that befriended strangers.** A second, undocumented auto-accept setting overrode my config, and I found it by reading the live file.
 
 ## Repository layout
 

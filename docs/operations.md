@@ -19,6 +19,31 @@ All commands run on the VM, from `/opt/minecraft`.
 2. Become Xbox friends with the bot account. The admin accepts or sends the request, since auto-follow is off.
 3. They join from **Play → Friends**.
 
+## Watching joins live
+
+```bash
+docker compose logs -f --since 1m bedrock | grep --line-buffered -E "Player (connected|Spawned|disconnected)"
+```
+
+Saved as a shell alias (`joins`) in `~/.bashrc`. Recent history:
+
+```bash
+docker compose logs bedrock | grep -E "Player (connected|disconnected)" | tail -20
+```
+
+## "Can't join" checklist (check the player's side first)
+
+1. Signed into Minecraft with their **Microsoft account**. The allowlisted name is their Microsoft gamertag, not their PSN name.
+2. **Cross-platform play** is on in Minecraft settings.
+3. **PlayStation only:** PS Plus is active (Essential is enough).
+4. They're **friends with the bot**, and the admin has accepted the request.
+5. They're on the allowlist: `./mc list`. The exact name they tried is in `./mc logs`.
+6. **Admin side:** the firewall's WAN holds the public IP, not a private one.
+
+## Remote admin
+
+Over a private mesh VPN with a subnet router at home, using key-only SSH from a phone with its own key. SSH is never port-forwarded.
+
 ## Backup schedule (cron)
 
 Example schedule; pick your own times:

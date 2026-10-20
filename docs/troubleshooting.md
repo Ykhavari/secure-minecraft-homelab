@@ -137,3 +137,64 @@ pkill -f 'sleep 600; pve-firewall stop'                           # cancel only 
 **Root cause:** anti-fraud checks on new sign-ups from a home network.
 
 **Fix:** used an existing spare Microsoft account instead, changed its gamertag (the first change is free) and set its privacy for cross-network play, multiplayer and online visibility.
+
+---
+
+## 11. The bot accepted every friend request on its own
+
+**Symptom:** strangers who sent the bot a friend request were accepted automatically, even with `auto-follow: false` set.
+
+**Root cause:** this version of the broadcaster has a separate setting, `auto-friend`, that auto-accepts incoming requests. A second setting, `expiry`, silently unfriended anyone who hadn't joined for 15 days.
+
+**Fix:** turned both off, so the admin approves every friend and friends who take a break aren't dropped:
+
+```bash
+sudo sed -i -e 's/^\(\s*auto-friend:\).*/\1 false/' \
+            -e '/expiry:/,/check:/s/^\(\s*enabled:\).*/\1 false/' xbox/config.yml
+docker compose restart broadcast
+```
+
+**Lesson:** read the actual config file rather than assuming setting names from documentation. The allowlist meant no stranger could join, but discovery should be controlled too.
+
+---
+
+## 12. Joins failed intermittently: the WAN fell back to a private address
+
+**Symptom:** a test join from a phone on cellular reached the bot, which logged a successful transfer, but the server logged nothing. Other tests at other times had passed.
+
+**Investigation:** the firewall's own log showed outbound traffic leaving the WAN from a **private 192.168.1.x address** for several hours that morning, while the evening before and the afternoon after showed the public IP. The failed join fell inside that window.
+
+**Root cause:** when the ISP gateway reboots or loses its uplink, it briefly hands out a private lease. The firewall accepted it and kept it until the lease expired, which silently disabled every port forward.
+
+**What didn't work:** OPNsense's *Reject Leases From* the gateway's address. The gateway serves the public passthrough lease from that same address, so the firewall lost its connection entirely. I reverted it straight away.
+
+**Fix:** shortened the gateway's private DHCP lease and the passthrough lease, so a wrong lease is replaced within minutes instead of hours. As a further option, a watchdog can renew the WAN lease automatically whenever no public address is present.
+
+**Lesson:** "it worked yesterday" can be a network that changes underneath you. Correlating timestamps across the firewall and application logs found it.
+
+---
+
+## 13. One console player couldn't join at all
+
+**Symptom:** a PlayStation player could see the server but never connect.
+
+**Root cause:** not the server. Online multiplayer on PlayStation requires an active PS Plus subscription, and theirs had lapsed.
+
+**Fix:** PS Plus Essential is enough. Nothing changed on the server.
+
+**Lesson:** rule out client-side entitlements before changing infrastructure. A per-platform checklist (Microsoft account signed in, cross-platform play on, PS Plus active, accepted bot friend request) now comes first for "can't join" reports.
+
+---
+
+## 14. Managing the server remotely without opening anything
+
+**Need:** check logs and add players while away from home, without exposing SSH to the internet.
+
+**Approach:** a private mesh VPN with a subnet router at home, and a mobile SSH client using its **own Ed25519 key**. Password login stays disabled; only the phone's public key was added to `authorized_keys`. Nothing new was installed on the game VM, so its isolation rules are unchanged.
+
+**Small fixes along the way:**
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `no configuration file provided: not found` | New sessions start in `~`, not the stack folder | `echo 'cd /opt/minecraft' >> ~/.bashrc` |
+| Password rejected in the SSH app | Key-only SSH (by design) | Generate a key in the app; add its public key |
