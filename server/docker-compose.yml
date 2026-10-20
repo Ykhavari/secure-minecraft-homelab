@@ -1,0 +1,72 @@
+# Minecraft Bedrock server for console friends (port-forward setup)
+#   bedrock   - official Bedrock Dedicated Server; TCP 19132 handshake + UDP 19140-19149 gameplay (NetherNet)
+#   broadcast - MCXboxBroadcast: shows the server on consoles' Friends tab (ICE ports 19150-19159)
+# Also set in data/server.properties: transport=nethernet and server-udp-ports=PUBLIC-IP:19140-19149:19140-19149
+
+services:
+  bedrock:
+    image: itzg/minecraft-bedrock-server:stable
+    container_name: bedrock
+    cap_add:
+      - SYS_PTRACE   # lets ./mc send commands (send-command must find the server process)
+    healthcheck:
+      disable: true   # built-in check uses RakNet; server is NetherNet-only, so it would always say "unhealthy"
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    stop_grace_period: 60s
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      EULA: "TRUE"
+      VERSION: "LATEST"
+      TZ: "Etc/UTC"          # set to your time zone
+      UID: "1000"
+      GID: "1000"
+      SERVER_NAME: "${SERVER_NAME}"
+      LEVEL_NAME: "${LEVEL_NAME}"
+      GAMEMODE: "survival"
+      DIFFICULTY: "normal"
+      MAX_PLAYERS: "10"
+      VIEW_DISTANCE: "12"
+      TICK_DISTANCE: "4"
+      PLAYER_IDLE_TIMEOUT: "30"
+      MAX_THREADS: "0"
+      CLIENT_SIDE_CHUNK_GENERATION_ENABLED: "true"
+      ONLINE_MODE: "true"
+      ALLOW_LIST: "true"
+      ALLOW_CHEATS: "false"
+      DEFAULT_PLAYER_PERMISSION_LEVEL: "member"
+      OPS: "${OPS}"
+      ENABLE_LAN_VISIBILITY: "false"
+      EMIT_SERVER_TELEMETRY: "false"
+      STOP_SERVER_ANNOUNCE_DELAY: "10"
+    ports:
+      - "19132:19132/tcp"
+      - "19140-19149:19140-19149/udp"
+    volumes:
+      - ./data:/data
+    networks:
+      mcnet:
+        ipv4_address: 172.30.0.10
+
+  broadcast:
+    image: ghcr.io/mcxboxbroadcast/standalone:latest
+    container_name: broadcast
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./xbox:/opt/app/config
+    network_mode: host
+    depends_on:
+      - bedrock
+
+networks:
+  mcnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24

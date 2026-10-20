@@ -1,0 +1,9 @@
+# Secrets and live data: never commit
+.env
+xbox/
+data/
+backups/
+*.tar.gz
+*.zip
+# OS cruft
+.DS_Store

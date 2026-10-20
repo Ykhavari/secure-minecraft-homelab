@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# Helper for day-to-day server management. Run from this folder: ./mc <command>
+set -euo pipefail
+cd "$(dirname "$0")"
+
+send() { docker exec -u 0 bedrock send-command "$@"; }
+
+usage() {
+  cat <<'EOF'
+Usage: ./mc <command>
+
+  allow <gamertag>     Add a friend to the allowlist
+  deny  <gamertag>     Remove someone from the allowlist (and kick them)
+  list                 Show the allowlist
+  kick  <gamertag>     Kick a player
+  say   <message>      Broadcast a chat message
+  cmd   <command...>   Run any server console command
+  status               Show container status
+  logs                 Follow the server log (Ctrl+C to stop)
+  xbox-login           Show the broadcaster log (Microsoft sign-in code appears here)
+  update               Pull new images and restart (also updates Bedrock)
+  snapshot             Live backup now - no downtime, players stay on
+  backup               Full backup now (restarts server, 60s warning)
+  backups              List saved backups
+EOF
+}
+
+[ $# -ge 1 ] || { usage; exit 1; }
+action="$1"; shift
+
+case "$action" in
+  allow)
+    [ $# -ge 1 ] || { echo "Usage: ./mc allow <gamertag>"; exit 1; }
+    send allowlist add "\"$*\""
+    send allowlist reload
+    echo "Added '$*' to the allowlist."
+    ;;
+  deny)
+    [ $# -ge 1 ] || { echo "Usage: ./mc deny <gamertag>"; exit 1; }
+    send kick "\"$*\"" || true
+    send allowlist remove "\"$*\""
+    send allowlist reload
+    echo "Removed '$*' from the allowlist."
+    ;;
+  list)
+    if command -v jq >/dev/null; then
+      jq -r '.[].name' data/allowlist.json
+    else
+      cat data/allowlist.json
+    fi
+    ;;
+  kick)   send kick "\"$*\"" ;;
+  say)    send say "$*" ;;
+  cmd)    send "$@"; echo "Sent. Output is in: ./mc logs" ;;
+  status) docker compose ps ;;
+  logs)   docker compose logs -f --tail=100 bedrock ;;
+  xbox-login) docker compose logs -f --tail=50 broadcast ;;
+  update)
+    docker compose pull
+    send say "Server restarting for an update in 10 seconds" || true
+    docker compose up -d --force-recreate
+    ;;
+  backup)   ./backup.sh ;;
+  snapshot) ./snapshot.sh ;;
+  backups)
+    # shellcheck disable=SC1091
+    set -a; [ -f .env ] && . ./.env; set +a
+    ls -lht "${BACKUP_DIR:-./backups}" 2>/dev/null | head -25 || echo "No backups yet"
+    ;;
+  *) usage; exit 1 ;;
+esac

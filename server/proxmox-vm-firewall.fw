@@ -1,0 +1,41 @@
+# Proxmox per-VM firewall for the Minecraft VM.
+# Save on the Proxmox HOST as:  /etc/pve/firewall/<VMID>.fw
+# Or enter the same rules in the GUI: VM -> Firewall.
+#
+# What it does:
+#   - lets in only SSH from your LAN and the Minecraft game ports
+#   - lets the VM reach the internet (Xbox Live, Mojang updates)
+#   - blocks the VM from your home network: LAN, Proxmox, OPNsense, Pi-hole, NAS, IoT
+# The host enforces this, so even a compromised VM can't turn it off.
+#
+# Edit before use:
+#   LAN-SUBNET     -> your LAN subnet, e.g. 192.168.1.0/24
+#   SYNOLOGY-IP    -> your Synology's IP (only if backing up to its NFS share; otherwise delete that line)
+#
+# Rules are checked top to bottom; first match wins.
+
+[OPTIONS]
+enable: 1
+dhcp: 1
+macfilter: 1
+policy_in: DROP
+policy_out: ACCEPT
+log_level_in: nolog
+log_level_out: nolog
+
+[RULES]
+# --- Inbound ---
+IN SSH(ACCEPT) -source LAN-SUBNET
+IN ACCEPT -p tcp -dport 19132
+IN ACCEPT -p udp -dport 19140:19149
+IN ACCEPT -p udp -dport 19150:19159
+
+# --- Outbound: allow ONLY the NFS backup share on the Synology (delete if not using) ---
+OUT ACCEPT -dest SYNOLOGY-IP -p tcp -dport 2049
+
+# --- Outbound: block every private range (your whole home network) ---
+OUT DROP -dest 10.0.0.0/8
+OUT DROP -dest 172.16.0.0/12
+OUT DROP -dest 192.168.0.0/16
+OUT DROP -dest 100.64.0.0/10
+OUT DROP -dest 169.254.0.0/16
