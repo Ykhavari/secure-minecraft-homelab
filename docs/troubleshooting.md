@@ -198,3 +198,44 @@ docker compose restart broadcast
 |---|---|---|
 | `no configuration file provided: not found` | New sessions start in `~`, not the stack folder | `echo 'cd /opt/minecraft' >> ~/.bashrc` |
 | Password rejected in the SSH app | Key-only SSH (by design) | Generate a key in the app; add its public key |
+
+---
+
+## 15. Consoles timed out joining while the server looked healthy
+
+**Symptom:** the bot handed players over and the server logged the connection attempt, then the client failed with a connection timeout.
+
+**Root cause:** Docker's default bridge network adds its own NAT layer. NetherNet is WebRTC-style: the server advertises an address and UDP port for the gameplay connection, and behind the bridge those didn't match what the client could actually reach.
+
+**Fix:** `network_mode: host` for the server container, with the VM's own firewall (UFW) opening exactly the game ports. I also confirmed the edge NAT rule for 19132 covered **TCP and UDP**, because NetherNet signals over TCP.
+
+**Lesson:** "the container is up" and "the protocol works through the container's network" are different checks. Packet captures on the VM showed the handshake arriving and the gameplay connection never completing.
+
+---
+
+## 16. Following a changing public IP automatically
+
+**Need:** the server advertises the home public IP in two places (`server-udp-ports` and the bot's `ip:`). If the ISP changes it, joins break until someone notices.
+
+**Approach:** `server/ipwatch.sh`, run from cron every 5 minutes. It asks **two independent lookup services** and only acts when both return the same valid public address (private, CGNAT, loopback and link-local results are rejected). That way a bad lookup or a moment of the WAN holding a private lease can never rewrite the config. On a real change it backs up both files, rewrites them, warns players in-game and restarts both containers 30 seconds later. Tested against mocked lookups before going live.
+
+---
+
+## 17. Off-VM backups: the NFS mount just hung
+
+**Symptom:** `mount -a` for the NAS share never returned, and a TCP test to the NAS's port 2049 from the VM timed out. The same test from the Proxmox host succeeded.
+
+**Root cause:** the VM's hypervisor firewall blocks every private range outbound, and the single NFS exception had never been applied to the live rules. The segmentation was doing exactly its job.
+
+**Fix:** added `OUT ACCEPT -dest <NAS> -p tcp -dport 2049` **above** the `OUT DROP` lines (first match wins), after backing up the rules file. Players stayed connected throughout.
+
+**Two follow-ups on the NAS side:**
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `Protocol not supported` for NFS 4.2 / 4.1 | The NAS's maximum NFS version was set lower | Pin `vers=4.0` in fstab (or raise the NAS's maximum) |
+| `No such file or directory` from the server | The share had no NFS permission for the VM's IP yet | Added a Read/Write rule for that one IP only |
+
+**Hardening the mount:** the fstab line uses `nofail` so the VM still boots if the NAS is off, and the backup scripts fall back to a local folder (with a warning) if the mount is missing, rather than silently filling the VM's disk under `/mnt`. The share's recycle bin is off so retention pruning really frees space, and a quota caps it.
+
+**Lesson:** when a default-deny design breaks something, test from both sides of the boundary. "Host can reach it, guest can't" pointed straight at the hypervisor firewall.

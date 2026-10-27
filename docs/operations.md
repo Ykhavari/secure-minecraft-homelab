@@ -54,7 +54,11 @@ Example schedule; pick your own times:
 30 5 * * 0  cd /opt/minecraft && ./mc update >> ~/mc-update.log 2>&1    # weekly image update
 ```
 
-Retention and the warning length are set in `.env` (`SNAPSHOT_KEEP_HOURS`, `BACKUP_KEEP_DAYS`, `BACKUP_WARNING`). Proxmox also backs up the whole VM weekly to the NAS.
+Backups are written to the NAS share mounted at `/mnt/mc-backups`; if it isn't mounted, the scripts fall back to `./backups` and log a warning. Retention and the warning length are set in `.env` (`SNAPSHOT_KEEP_HOURS`, `BACKUP_KEEP_DAYS`, `BACKUP_WARNING`). Proxmox also backs up the whole VM weekly to the NAS in snapshot mode, so players aren't disconnected.
+
+```cron
+*/5 * * * * /opt/minecraft/ipwatch.sh >> /var/log/mc-ipwatch.log 2>&1   # root crontab: public-IP watcher
+```
 
 ## Restore
 
@@ -67,7 +71,7 @@ docker compose start bedrock
 
 ## If the public IP changes
 
-Update `server-udp-ports` in `data/server.properties` and `ip:` under `session-info:` in `xbox/config.yml`, then run `docker compose restart`.
+Handled automatically by `ipwatch.sh` (root cron, every 5 minutes; log in `/var/log/mc-ipwatch.log`). To do it by hand: update `server-udp-ports` in `data/server.properties` and `ip:` under `session-info:` in `xbox/config.yml`, then run `docker compose restart`.
 
 ## Never
 

@@ -72,6 +72,9 @@ The VM can reach the internet (Xbox Live, Mojang updates, Debian mirrors) and **
 - Log rotation (20 MB × 5) so logs can't fill the disk.
 - Containers update weekly through a scheduled `docker compose pull`.
 
+### Configuration integrity
+- The public-IP watcher only rewrites config when **two independent services agree** on a valid public address, and it rejects private, CGNAT, loopback and link-local results, so a bad lookup or a transient private WAN lease can't redirect players. It backs up both files before every change.
+
 ### Resilience and integrity
 - **Live hot-backups every 2 hours** using Bedrock's official sequence (`save hold`, `save query`, copy each file truncated to its reported length, `save resume`). The copies are consistent, with no downtime.
 - **Nightly full backups** with the server cleanly stopped, a configurable in-game warning, and 14-day retention.
@@ -89,6 +92,7 @@ The VM can reach the internet (Xbox Live, Mojang updates, Debian mirrors) and **
 | No double NAT | Firewall WAN interface address | A public IP, not 192.168.x.x |
 | Allowlist | A non-listed account tries to join | Refused ("not invited") |
 | SSH hardening | `ssh -o PubkeyAuthentication=no user@vm` | `Permission denied (publickey)` |
+| Segmentation (observed) | Before the NFS exception existed: TCP test to the NAS on 2049 from the VM, and from the Proxmox host | VM blocked, host open; after adding the one rule, the VM reached only that port |
 | Persistence | Place a block, reboot the VM, rejoin | The block is still there; containers came back on their own |
 | Backups | `./mc snapshot`, `./mc backup`, then a test restore | Archives created; restore loads the world |
 

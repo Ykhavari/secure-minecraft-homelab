@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-time VM prep for a fresh Debian VM.
+# One-time VM prep for a fresh Debian 13 (or 12) VM.
 # Run:  sudo LAN_SUBNET=192.168.1.0/24 bash setup-vm.sh
 # - Installs Docker (official repo), jq, qemu-guest-agent, automatic security updates
 # - Firewall inside the VM: deny all inbound except SSH from your LAN
@@ -50,12 +50,15 @@ systemctl enable docker
 systemctl restart docker
 [ "$ADMIN_USER" != "root" ] && usermod -aG docker "$ADMIN_USER"
 
-echo "==> Firewall (inbound: SSH from $LAN_SUBNET only)"
+echo "==> Firewall (inbound: SSH from $LAN_SUBNET + Minecraft ports)"
 ufw default deny incoming
 ufw default allow outgoing
 ufw allow from "$LAN_SUBNET" to any port 22 proto tcp
-# Broadcaster uses host networking, so UFW applies to it (Docker-published game ports bypass UFW)
-ufw allow 19150:19159/udp
+# Both containers use host networking, so UFW filters the game ports directly
+ufw allow 19132/tcp comment 'Minecraft NetherNet signaling'
+ufw allow 19132/udp comment 'Minecraft'
+ufw allow 19140:19149/udp comment 'Minecraft NetherNet gameplay'
+ufw allow 19150:19159/udp comment 'Minecraft broadcaster'
 ufw --force enable
 
 echo "==> SSH hardening"

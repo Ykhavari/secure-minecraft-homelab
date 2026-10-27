@@ -1,16 +1,20 @@
 # Minecraft Bedrock server for console friends (port-forward setup)
-#   bedrock   - official Bedrock Dedicated Server; TCP 19132 handshake + UDP 19140-19149 gameplay (NetherNet)
-#   broadcast - MCXboxBroadcast: shows the server on consoles' Friends tab (ICE ports 19150-19159)
-# Also set in data/server.properties: transport=nethernet and server-udp-ports=PUBLIC-IP:19140-19149:19140-19149
+#   bedrock   - official Bedrock Dedicated Server, NetherNet transport:
+#               TCP 19132 handshake + UDP 19140-19149 gameplay (one port per player)
+#   broadcast - MCXboxBroadcast: shows the server in consoles' Friends tab (ICE ports 19150-19159)
+# Both use host networking: NetherNet (WebRTC-style) breaks behind Docker's extra NAT layer.
+# Also set in data/server.properties: transport=nethernet and
+#   server-udp-ports=PUBLIC-IP:19140-19149:19140-19149
 
 services:
   bedrock:
     image: itzg/minecraft-bedrock-server:stable
     container_name: bedrock
+    network_mode: host
     cap_add:
-      - SYS_PTRACE   # lets ./mc send commands (send-command must find the server process)
+      - SYS_PTRACE    # lets ./mc send commands (send-command must find the server process)
     healthcheck:
-      disable: true   # built-in check uses RakNet; server is NetherNet-only, so it would always say "unhealthy"
+      disable: true   # built-in check uses RakNet; a NetherNet server would always look "unhealthy"
     restart: unless-stopped
     stdin_open: true
     tty: true
@@ -41,18 +45,14 @@ services:
       ENABLE_LAN_VISIBILITY: "false"
       EMIT_SERVER_TELEMETRY: "false"
       STOP_SERVER_ANNOUNCE_DELAY: "10"
-    ports:
-      - "19132:19132/tcp"
-      - "19140-19149:19140-19149/udp"
+      TRANSPORT: "nethernet"
     volumes:
       - ./data:/data
-    networks:
-      mcnet:
-        ipv4_address: 172.30.0.10
 
   broadcast:
     image: ghcr.io/mcxboxbroadcast/standalone:latest
     container_name: broadcast
+    network_mode: host
     restart: unless-stopped
     stdin_open: true
     tty: true
@@ -60,13 +60,5 @@ services:
       - no-new-privileges:true
     volumes:
       - ./xbox:/opt/app/config
-    network_mode: host
     depends_on:
       - bedrock
-
-networks:
-  mcnet:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.30.0.0/24

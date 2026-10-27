@@ -27,6 +27,7 @@ log_level_out: nolog
 # --- Inbound ---
 IN SSH(ACCEPT) -source LAN-SUBNET
 IN ACCEPT -p tcp -dport 19132
+IN ACCEPT -p udp -dport 19132
 IN ACCEPT -p udp -dport 19140:19149
 IN ACCEPT -p udp -dport 19150:19159
 
