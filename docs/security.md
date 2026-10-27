@@ -9,7 +9,7 @@ This server is an **internet-facing service on a home network**, which is the ri
 | Home network (Proxmox, router, NAS, IoT, personal devices) | Lateral movement from a compromised game server | Host-enforced VM firewall blocks all private ranges outbound; VM can't reach the hypervisor or the firewall UI |
 | The game world and players' progress | Griefing, corruption, ransomware on the VM, hardware failure | Allowlist, no operators, live and nightly backups, off-VM NAS copies, whole-VM backups |
 | The server VM | Brute force, exploitation of exposed services, privilege escalation | Only game ports exposed; SSH LAN-only and key-only; minimal OS; auto security updates; non-root containers, `no-new-privileges` |
-| The bot Xbox account | Account takeover, abuse of its friend list | Dedicated adult account used only for this; strong unique password; auto-follow off |
+| The bot Xbox account | Account takeover, abuse of its friend list | Dedicated adult account used only for this; strong unique password; auto-accept off |
 | Admin credentials and secrets | Leak through the public repo | `.gitignore` for `.env`, tokens and world data; placeholders for every identifier |
 
 ## 2. Why port forwarding, and what I did about the risk
@@ -38,7 +38,7 @@ Opening ports increases the attack surface, so I offset it with **compensating c
 - `online-mode=true`: Xbox Live authentication is required, so gamertags can't be spoofed.
 - `allow-list=true`: deny by default. New players are added one at a time by an admin.
 - `default-player-permission-level=member`, `allow-cheats=false`, and **no operators at all**. There's no in-game account that can run commands, so there's nothing to steal or social-engineer. Admin commands are only possible from a shell on the VM.
-- **Discovery control:** the broadcaster bot uses `auto-follow: false` and `auto-friend: false`. Following the bot or sending it a request doesn't reveal the server; the admin approves every friend. Automatic friend expiry is off, so approved players aren't silently removed.
+- **Discovery control:** the broadcaster bot uses `auto-friend: false`. Following the bot or sending it a request doesn't reveal the server; the admin approves every friend. Automatic friend expiry is off, so approved players aren't silently removed.
 
 ### Segmentation (Proxmox per-VM firewall)
 Enforced by the **hypervisor**, outside the VM, so a root-level compromise inside the VM can't switch it off.

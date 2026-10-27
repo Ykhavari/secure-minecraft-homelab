@@ -142,7 +142,7 @@ pkill -f 'sleep 600; pve-firewall stop'                           # cancel only 
 
 ## 11. The bot accepted every friend request on its own
 
-**Symptom:** strangers who sent the bot a friend request were accepted automatically, even with `auto-follow: false` set.
+**Symptom:** strangers who sent the bot a friend request were accepted automatically, even though nothing in my config asked for that.
 
 **Root cause:** this version of the broadcaster has a separate setting, `auto-friend`, that auto-accepts incoming requests. A second setting, `expiry`, silently unfriended anyone who hadn't joined for 15 days.
 

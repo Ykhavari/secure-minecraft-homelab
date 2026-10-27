@@ -20,6 +20,7 @@ Friend's console ──► your public IP (OPNsense, GeoIP-filtered) ──► p
 | `mc` | Day-to-day helper (`./mc allow`, `./mc logs`, `./mc backup`, …) |
 | `snapshot.sh` | Live backup, no downtime |
 | `backup.sh` | Full backup (brief restart, also updates Bedrock) |
+| `ipwatch.sh` | Follows a changing public IP and restarts with a warning |
 | `proxmox-vm-firewall.fw` | Proxmox firewall rules for the VM (`/etc/pve/firewall/<VMID>.fw`) |
 
 ## How the networking works
@@ -48,7 +49,7 @@ GeoIP alias of allowed countries, Firewall rule = Pass. OPNsense must hold the *
 - **Allowlist + Xbox Live sign-in:** only gamertags you add can join, and names can't be faked.
 - **Members only, cheats off:** friends can't run commands. There's no in-game operator (`OPS=""`); admin from the VM with `./mc cmd`.
 - **Proxmox VM firewall:** the VM can't reach anything on your home network.
-- **Container hardening:** non-root, no-new-privileges, auto-restart, nightly update.
+- **Container hardening:** non-root, no-new-privileges, auto-restart, weekly image update.
 
 ## Everyday commands (run from `/opt/minecraft`)
 
@@ -64,7 +65,7 @@ PS5 players are allowlisted by their **Microsoft gamertag** (shown in Minecraft 
 ## Backups
 
 - `snapshot.sh` every 2 hours (live), `backup.sh` nightly, `./mc update` weekly, all via `crontab -e`.
-- `BACKUP_DIR` in `.env`: `/opt/minecraft/backups` until the Synology NFS share is mounted, then `/mnt/mc-backups`.
+- `BACKUP_DIR` in `.env`: `/mnt/mc-backups` (the NAS share); falls back to `./backups` if it isn't mounted.
 - Restore: `docker compose stop bedrock`, move `data/worlds` aside, `tar -xzf <backup> -C data`, `docker compose start bedrock`.
 
 ## Never do these
@@ -75,5 +76,5 @@ PS5 players are allowlisted by their **Microsoft gamertag** (shown in Minecraft 
 
 ## If your public IP changes
 
-Update `server-udp-ports` in `data/server.properties` and `ip:` (under `session-info:`) in `xbox/config.yml`,
-then run `docker compose restart`.
+`ipwatch.sh` handles it automatically (root cron, every 5 minutes). By hand: update `server-udp-ports` in
+`data/server.properties` and `ip:` (under `session-info:`) in `xbox/config.yml`, then run `docker compose restart`.

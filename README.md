@@ -72,7 +72,7 @@ This is the core of the project. Full detail is in **[docs/security.md](docs/sec
 | Authentication | Xbox Live sign-in enforced (`online-mode`), so identities can't be faked |
 | Authorization | **Allowlist**: only approved gamertags can join |
 | Least privilege | Members only, cheats off, **zero in-game operators**. Admin happens only from the VM shell |
-| Discovery control | The bot only shows the server to friends *it* accepts (`auto-follow: false`) |
+| Discovery control | The bot only shows the server to friends the admin approves (`auto-friend: false`) |
 | Segmentation | Proxmox per-VM firewall **blocks the VM from the entire home network**, except one NFS port to the NAS |
 | Host hardening | Minimal Debian, SSH **key-only** from the LAN, UFW default-deny, unattended security updates |
 | Container hardening | Non-root processes, `no-new-privileges`, one narrowly scoped capability, log rotation |

@@ -16,7 +16,7 @@ All commands run on the VM, from `/opt/minecraft`.
 
 **Adding a friend:**
 1. `./mc allow "TheirGamertag"`
-2. Become Xbox friends with the bot account. The admin accepts or sends the request, since auto-follow is off.
+2. Become Xbox friends with the bot account. The admin accepts or sends the request, since auto-accept is off.
 3. They join from **Play → Friends**.
 
 ## Watching joins live
