@@ -79,7 +79,7 @@ This is the core of the project. Full detail is in **[docs/security.md](docs/sec
 | Host hardening | Minimal Debian, SSH **key-only** from the LAN, UFW default-deny, unattended security updates |
 | Container hardening | Non-root processes, `no-new-privileges`, one narrowly scoped capability, log rotation |
 | Management | Container dashboard (Portainer agent) reachable **only from one admin VM**, enforced by the hypervisor firewall |
-| Monitoring | **Uptime Kuma** on a separate admin VM checks the game port, SSH, the backup NAS, the hypervisor and internet every 60 s, using only ports the VM already allows (no new firewall holes) |
+| Monitoring | **Uptime Kuma** on a separate admin VM checks the game port, SSH, the backup NAS, the hypervisor and internet every 60 s, using only ports the VM already allows (no new firewall holes); dashboard is LAN-only with 2FA |
 | Resilience | Consistent live backups (Bedrock's hot-backup API), off-VM copies, VM-level backups, clean-shutdown tuning |
 | Secrets hygiene | `.env`, tokens, keys and world data are git-ignored; every IP and identifier in this repo is a placeholder |
 
