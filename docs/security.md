@@ -27,7 +27,7 @@ Opening ports increases the attack surface, so I offset it with **compensating c
 
 ### Perimeter (OPNsense)
 - **Destination NAT** for exactly three ranges, all to one internal host:
-  - TCP 19132 (NetherNet signaling)
+  - TCP+UDP 19132 (NetherNet signaling)
   - UDP 19140–19149 (gameplay, one per player; the cap is 10)
   - UDP 19150–19159 (broadcaster ICE ports, deliberately narrowed from the OS's whole ephemeral range)
 - **Source restricted to a GeoIP alias** built from MaxMind GeoLite2 (updated automatically).
@@ -48,7 +48,7 @@ policy_in:  DROP          policy_out: ACCEPT
 IN  SSH  from LAN-SUBNET only
 IN  game ports (TCP+UDP 19132, UDP 19140-19159)
 IN  TCP 9001 from the Portainer VM only        <- container dashboard agent
-OUT NFS (TCP 2049) to the NAS only          <- the single exception
+OUT NFS (TCP 2049) to the NAS only          <- the single outbound exception
 OUT DROP 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 100.64.0.0/10, 169.254.0.0/16
 ```
 
