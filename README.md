@@ -4,6 +4,8 @@ A self-hosted Minecraft Bedrock server that friends on **Xbox and PlayStation 5*
 
 It has **no monthly cost** and **no third-party tunnel**. It was built security-first, as a defense-in-depth exercise.
 
+**Status:** live since October 2026, with friends playing from Xbox and PS5.
+
 > **Why this project:** consoles can't type in a server address, and as of 2026 Bedrock only accepts its newer **NetherNet** connections. That broke the usual "free tunnel" approach, so I had to expose the server to the internet myself. I treated it the way I'd treat any internet-facing service: assume it will be attacked, limit who can reach it, limit what it can reach, and make sure the data survives anything.
 
 ---
@@ -46,7 +48,7 @@ flowchart TB
     NAS[(NAS<br/>NFS backup share)]
     LAN[Home LAN<br/>Proxmox UI, router, NAS, IoT]
 
-    X -->|TCP 19132 / UDP 19140-19159| G --> N --> FW --> UFW
+    X -->|TCP+UDP 19132 / UDP 19140-19159| G --> N --> FW --> UFW
     UFW --> B
     UFW --> BC
     BC <-->|presence: friends see the server| XL
@@ -76,6 +78,7 @@ This is the core of the project. Full detail is in **[docs/security.md](docs/sec
 | Segmentation | Proxmox per-VM firewall **blocks the VM from the entire home network**, except one NFS port to the NAS |
 | Host hardening | Minimal Debian, SSH **key-only** from the LAN, UFW default-deny, unattended security updates |
 | Container hardening | Non-root processes, `no-new-privileges`, one narrowly scoped capability, log rotation |
+| Management | Container dashboard (Portainer agent) reachable **only from one admin VM**, enforced by the hypervisor firewall |
 | Resilience | Consistent live backups (Bedrock's hot-backup API), off-VM copies, VM-level backups, clean-shutdown tuning |
 | Secrets hygiene | `.env`, tokens, keys and world data are git-ignored; every IP and identifier in this repo is a placeholder |
 
@@ -88,9 +91,15 @@ Real-world troubleshooting is most of what this build was. Full write-ups are in
 - **A health check that lied.** The container reported "unhealthy" around the clock, because its probe uses RakNet and the server no longer answers it.
 - **Container permission puzzles.** One image runs as UID 1001, not 1000. Another needed a single Linux capability so the admin tool could find the server process after its privilege drop.
 - **Locking myself out safely.** Every firewall change was applied with an automatic 10-minute rollback, cancelled only after I'd proved access still worked.
-- **A WAN that quietly went private.** Correlating firewall and server logs showed the WAN had briefly taken a private lease after a gateway hiccup, which disabled the port forwards. One obvious fix cut the connection entirely and was reverted; shorter leases solved it.
+- **A WAN that quietly went private.** Correlating firewall and server logs showed the WAN had briefly taken a private lease after a gateway hiccup, which disabled the port forwards. One obvious fix cut the connection entirely and was reverted; the safe fix is shorter gateway leases.
 - **Off-VM backups that hung.** The NFS mount stalled because the VM's default-deny firewall had no exception for the NAS yet: proof the segmentation works. One ordered rule fixed it.
-- **A bot that befriended strangers.** A second, undocumented auto-accept setting overrode my config, and I found it by reading the live file.
+- **A bot that befriended strangers.** A separate auto-accept setting was switched on; I found it by reading the live config file.
+
+## Known limitations
+
+- **iPhone and iPad can't join.** This is a Mojang bug with the new NetherNet connection type on iOS, not something this setup can fix. Xbox, PS5, Windows and Android work.
+- **Console players need their platform's online subscription:** PS Plus (Essential is enough) on PS5, Game Pass Essential on Xbox. Everyone needs a free Microsoft account.
+- **Discovery depends on one bot Xbox account.** If Microsoft flags it, the server keeps running but disappears from Friends tabs until the bot is relinked.
 
 ## Repository layout
 
@@ -127,7 +136,7 @@ These map closely to CompTIA Security+ domains: security architecture (segmentat
 
 - [ ] Centralized log monitoring and alerting for the VM and firewall
 - [ ] Further network segmentation for internet-facing services
-- [ ] LAN-only container management dashboard
+- [x] LAN-only container management dashboard (Portainer agent, one admin VM only)
 - [ ] Uptime monitoring with alerts (e.g. Uptime Kuma)
 - [x] Automate the public-IP update if the ISP changes it (`ipwatch.sh`)
 

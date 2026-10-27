@@ -168,7 +168,7 @@ docker compose restart broadcast
 
 **What didn't work:** OPNsense's *Reject Leases From* the gateway's address. The gateway serves the public passthrough lease from that same address, so the firewall lost its connection entirely. I reverted it straight away.
 
-**Fix:** shortened the gateway's private DHCP lease and the passthrough lease, so a wrong lease is replaced within minutes instead of hours. As a further option, a watchdog can renew the WAN lease automatically whenever no public address is present.
+**Fix:** shorten the gateway's private DHCP lease and the passthrough lease, so a wrong lease is replaced within minutes instead of hours. As a further option, a watchdog can renew the WAN lease automatically whenever no public address is present. Meanwhile, `ipwatch.sh` refuses to act on a private address, so a bad lease can't rewrite the server config.
 
 **Lesson:** "it worked yesterday" can be a network that changes underneath you. Correlating timestamps across the firewall and application logs found it.
 

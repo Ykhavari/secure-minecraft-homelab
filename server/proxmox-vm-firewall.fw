@@ -10,6 +10,7 @@
 #
 # Edit before use:
 #   LAN-SUBNET     -> your LAN subnet, e.g. 192.168.1.0/24
+#   PORTAINER-IP   -> the Portainer VM's IP (only if using the dashboard agent)
 #   SYNOLOGY-IP    -> your Synology's IP (only if backing up to its NFS share; otherwise delete that line)
 #
 # Rules are checked top to bottom; first match wins.
@@ -30,6 +31,8 @@ IN ACCEPT -p tcp -dport 19132
 IN ACCEPT -p udp -dport 19132
 IN ACCEPT -p udp -dport 19140:19149
 IN ACCEPT -p udp -dport 19150:19159
+# Optional: container dashboard agent, from ONE admin VM only (delete if not using Portainer)
+IN ACCEPT -source PORTAINER-IP -p tcp -dport 9001
 
 # --- Outbound: allow ONLY the NFS backup share on the Synology (delete if not using) ---
 OUT ACCEPT -dest SYNOLOGY-IP -p tcp -dport 2049

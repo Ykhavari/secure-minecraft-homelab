@@ -46,7 +46,8 @@ Enforced by the **hypervisor**, outside the VM, so a root-level compromise insid
 ```
 policy_in:  DROP          policy_out: ACCEPT
 IN  SSH  from LAN-SUBNET only
-IN  game ports (TCP 19132, UDP 19140-19159)
+IN  game ports (TCP+UDP 19132, UDP 19140-19159)
+IN  TCP 9001 from the Portainer VM only        <- container dashboard agent
 OUT NFS (TCP 2049) to the NAS only          <- the single exception
 OUT DROP 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 100.64.0.0/10, 169.254.0.0/16
 ```
@@ -56,6 +57,7 @@ The VM can reach the internet (Xbox Live, Mojang updates, Debian mirrors) and **
 ### Remote administration
 - No management port is ever forwarded. Remote access goes through a private mesh VPN with a subnet router, so the game VM needs no extra software and its isolation rules don't change.
 - Each admin device has its own SSH key, which can be revoked individually. Password authentication stays off.
+- **Container dashboard:** a Portainer agent lets a separate admin VM show logs, stats and status. The agent needs the Docker socket, which is root-equivalent on this VM, so it is treated as an admin credential: a shared agent secret is required, and the hypervisor firewall only lets that one VM reach port 9001. Docker-published ports bypass UFW, which is exactly why this rule lives at the hypervisor. Starting and stopping the server stays with `./mc`, so the world always saves cleanly.
 
 ### Host hardening (Debian VM)
 - Minimal install: no desktop, only SSH and standard utilities.
@@ -101,6 +103,7 @@ The VM can reach the internet (Xbox Live, Mojang updates, Debian mirrors) and **
 - **The public IP is exposed** to anyone who learns it, which is mitigated by GeoIP, allowlisting and segmentation. A tunnel would be preferable if one supported NetherNet for free.
 - **GeoIP isn't authentication.** It cuts noise and opportunistic scanning; the allowlist is the real access control.
 - **`SYS_PTRACE`** slightly widens what happens inside the container, in exchange for working admin tooling. It's documented and scoped.
+- **The Portainer agent is a powerful path.** Anyone who controlled the Portainer VM could control containers here. Mitigated by the agent secret, the single-source firewall rule and keeping the Portainer VM LAN-only.
 - **The bot account is a dependency.** If Microsoft flags it, discovery stops, but the server and data are unaffected.
 
 ## 6. What's never in this repo
