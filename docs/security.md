@@ -92,7 +92,7 @@ The VM can reach the internet (Xbox Live, Mojang updates, Debian mirrors) and **
 
 ## 4. Verification (how I proved each control works)
 
-| Control | Test | Expected |
+| Control | Test | Result |
 |---|---|---|
 | Segmentation | From the VM: `ping 1.1.1.1`, `ping <gateway>`, `ping <proxmox>`, `apt update` | Internet ✅, gateway ❌, Proxmox ❌, updates ✅ |
 | Port forward + GeoIP | From a phone hotspot (outside the LAN): `nc -vz <public-ip> 19132`, while watching the firewall's live log | Connects; the log shows a Pass on the NAT rule |
@@ -100,8 +100,8 @@ The VM can reach the internet (Xbox Live, Mojang updates, Debian mirrors) and **
 | Allowlist | A non-listed account tries to join | Refused ("not invited") |
 | SSH hardening | `ssh -o PubkeyAuthentication=no user@vm` | `Permission denied (publickey)` |
 | Segmentation (observed) | Before the NFS exception existed: TCP test to the NAS on 2049 from the VM, and from the Proxmox host | VM blocked, host open; after adding the one rule, the VM reached only that port |
-| Persistence | Place a block, reboot the VM, rejoin | The block is still there; containers came back on their own |
-| Backups | `./mc snapshot`, `./mc backup`, then a test restore | Archives created; restore loads the world |
+| Persistence | The nightly full backup stops and restarts the server every day while friends build | Builds survive every restart; the container comes back on its own |
+| Backups | `./mc snapshot` and `./mc backup` to the NAS, then extract the newest NAS copy to a scratch folder | Archives land on the NAS; the extracted copy holds the complete world (`level.dat` and the world database) |
 
 ## 5. Trade-offs and residual risk
 
