@@ -45,7 +45,7 @@ server-udp-ports=<PUBLIC-IP>:19140-19149:19140-19149
 
 **Root cause:** the image's built-in health check pings the server over **RakNet**, which a NetherNet-only server never answers.
 
-**Fix:** disabled the health check (`healthcheck: disable: true`) and monitored the broadcaster's session updates and an external port test instead. I didn't replace it with a homemade probe, to avoid false confidence.
+**Fix:** disabled the health check (`healthcheck: disable: true`) and monitored the broadcaster's session updates and an external port test instead. I didn't replace it with a homemade probe, to avoid false confidence. Later, an external Uptime Kuma TCP check on the game port filled that gap properly: it tests what players actually connect to, from outside the container.
 
 **Lesson:** a monitoring check that always fails trains you to ignore alerts. Fix it or remove it.
 

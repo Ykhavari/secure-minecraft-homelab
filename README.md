@@ -79,6 +79,7 @@ This is the core of the project. Full detail is in **[docs/security.md](docs/sec
 | Host hardening | Minimal Debian, SSH **key-only** from the LAN, UFW default-deny, unattended security updates |
 | Container hardening | Non-root processes, `no-new-privileges`, one narrowly scoped capability, log rotation |
 | Management | Container dashboard (Portainer agent) reachable **only from one admin VM**, enforced by the hypervisor firewall |
+| Monitoring | **Uptime Kuma** on a separate admin VM checks the game port, SSH, the backup NAS, the hypervisor and internet every 60 s, using only ports the VM already allows (no new firewall holes) |
 | Resilience | Consistent live backups (Bedrock's hot-backup API), off-VM copies, VM-level backups, clean-shutdown tuning |
 | Secrets hygiene | `.env`, tokens, keys and world data are git-ignored; every IP and identifier in this repo is a placeholder |
 
@@ -114,6 +115,8 @@ server/
   backup.sh                 Nightly full backup with in-game warning
   ipwatch.sh                Follows a changing public IP (two-source check, warned restart)
   KIT.md                    Quick reference for the kit
+monitoring/
+  docker-compose.yml        Uptime Kuma, run on a separate LAN-only admin VM
 docs/
   security.md               Threat model, controls, verification, trade-offs
   troubleshooting.md        Problem -> cause -> fix log
@@ -127,6 +130,7 @@ screenshots/                Redacted screenshots
 - **Systems:** Proxmox VM sizing (NUMA, CPU type, virtio multiqueue, IO threads), Debian administration, systemd, cron, NFS
 - **Containers:** Docker Compose, Linux capabilities, UID mapping, health checks, host vs. bridge networking
 - **Identity and access:** allowlisting, enforced federated identity (Xbox Live), least-privilege admin model
+- **Monitoring:** external availability checks (Uptime Kuma) designed so one red check pinpoints the failing layer
 - **Resilience:** consistent hot backups, retention policies, off-host copies, VM snapshots vs. backups
 - **Troubleshooting:** packet captures and live firewall logs, protocol changes, permission errors, reading stack traces
 
@@ -137,7 +141,7 @@ These map closely to CompTIA Security+ domains: security architecture (segmentat
 - [ ] Centralized log monitoring and alerting for the VM and firewall
 - [ ] Further network segmentation for internet-facing services
 - [x] LAN-only container management dashboard (Portainer agent, one admin VM only)
-- [ ] Uptime monitoring with alerts (e.g. Uptime Kuma)
+- [x] Uptime monitoring (Uptime Kuma, external to the monitored VM)
 - [x] Automate the public-IP update if the ISP changes it (`ipwatch.sh`)
 
 ## Credits

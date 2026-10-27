@@ -60,6 +60,20 @@ Backups are written to the NAS share mounted at `/mnt/mc-backups`; if it isn't m
 */5 * * * * /opt/minecraft/ipwatch.sh >> /var/log/mc-ipwatch.log 2>&1   # root crontab: public-IP watcher
 ```
 
+## Monitoring
+
+Uptime Kuma (`monitoring/docker-compose.yml`) runs on a separate admin VM and checks every 60 seconds:
+
+| Monitor | Check | Red means |
+|---|---|---|
+| Game port | TCP to the VM on 19132 | The Bedrock server stopped listening |
+| VM SSH | TCP to the VM on 22 | The whole VM is down or unreachable |
+| Backup NAS | TCP to the NAS on 2049 | Backups are falling back to the VM's own disk |
+| Hypervisor | HTTPS to the Proxmox UI (self-signed cert allowed) | The host itself has a problem |
+| Internet | Ping a public resolver | The uplink is down, not the servers |
+
+Retries are set to 2 so a single dropped check doesn't raise a false alarm. Update with `docker compose pull && docker compose up -d`; monitors and history live in `./data`.
+
 ## Restore
 
 ```bash

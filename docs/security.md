@@ -74,6 +74,11 @@ The VM can reach the internet (Xbox Live, Mojang updates, Debian mirrors) and **
 - Log rotation (20 MB × 5) so logs can't fill the disk.
 - Containers update weekly through a scheduled `docker compose pull`.
 
+### Monitoring
+- **Uptime Kuma runs on a separate admin VM**, not on the server it watches, so a failure of the game VM can't also silence its monitor.
+- It checks, every 60 seconds: the game's TCP port, SSH on the VM, the NAS's NFS port (the backup target), the hypervisor's web UI and an internet reachability ping. The checks are layered so a single red result points at the failing piece: game port red with SSH green means the server process, everything red with internet red means the uplink.
+- **No new exposure:** every check uses a port the VM already accepts from the LAN, so the VM's firewall didn't change. The dashboard is LAN-only (never port-forwarded) and protected by a strong admin password.
+
 ### Configuration integrity
 - The public-IP watcher only rewrites config when **two independent services agree** on a valid public address, and it rejects private, CGNAT, loopback and link-local results, so a bad lookup or a transient private WAN lease can't redirect players. It backs up both files before every change.
 

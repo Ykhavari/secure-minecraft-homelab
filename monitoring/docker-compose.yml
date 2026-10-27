@@ -1,0 +1,15 @@
+# Uptime Kuma: watches the Minecraft VM from OUTSIDE it.
+# Runs on a separate LAN-only admin VM, never on the VM it monitors
+# (a monitor on the same machine goes down with it and can't alert).
+# Never port-forward 3001; reach it on the LAN or over the VPN.
+services:
+  uptime-kuma:
+    image: louislam/uptime-kuma:2
+    container_name: uptime-kuma
+    restart: unless-stopped
+    ports:
+      - 3001:3001
+    volumes:
+      - ./data:/app/data        # SQLite database: monitors and history
+    security_opt:
+      - no-new-privileges:true
