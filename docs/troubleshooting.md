@@ -239,3 +239,27 @@ docker compose restart broadcast
 **Hardening the mount:** the fstab line uses `nofail` so the VM still boots if the NAS is off, and the backup scripts fall back to a local folder (with a warning) if the mount is missing, rather than silently filling the VM's disk under `/mnt`. The share's recycle bin is off so retention pruning really frees space, and a quota caps it.
 
 **Lesson:** when a default-deny design breaks something, test from both sides of the boundary. "Host can reach it, guest can't" pointed straight at the hypervisor firewall.
+
+---
+
+## 18. "The host you are trying to join is using an older version of Minecraft"
+
+**Symptom:** one evening every console got *Unable to Connect: the host is using an older version*, although the server was up and healthy.
+
+**Root cause:** Mojang released a new Bedrock version. Consoles install updates automatically, and a newer client can't join an older server. The server only picked up new versions when it restarted (the 5 AM backup) or on the weekly update, so there was a window of hours where nobody could join.
+
+**Fix:** ran `./mc update` to recover immediately, then added `server/autoupdate.sh`. Every 30 minutes it compares the newest server in Mojang's download feed with the version the running server reports, and only when the feed is **newer** does it warn players, update the server and broadcaster, and send a phone alert. It does nothing when it can't read both versions, never downgrades, and remembers the version it attempted so a failed update can't loop. Verified with a dry run against the live feed before scheduling it, and tested against mocked feeds (same, older, newer, unreachable, repeated).
+
+**Lesson:** for a service whose clients update themselves, "patch weekly" isn't enough. Patching has to follow the client release, and it has to be safe to run often.
+
+---
+
+## 19. Alerts arrived in the app but never as phone notifications
+
+**Symptom:** test alerts from Uptime Kuma and the server showed up inside the ntfy app, but only when it was opened; nothing appeared on the lock screen.
+
+**Investigation:** the server side was fine (messages were delivered to the topic), and iOS notification settings for the app were all enabled. The phone's push registration had not completed.
+
+**Fix:** deleted and reinstalled the app, allowed notifications at the first prompt, re-subscribed to the topic on the default server, then tested with the phone locked and the app closed. Lock-screen alerts worked.
+
+**Lesson:** test the whole alert path end to end, including the last hop to the person, in the state they'll actually be in (phone locked, app closed). An alert that only shows when you go looking isn't an alert.

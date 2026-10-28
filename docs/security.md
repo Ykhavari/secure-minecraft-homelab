@@ -77,10 +77,16 @@ The VM can reach the internet (Xbox Live, Mojang updates, Debian mirrors) and **
 ### Monitoring
 - **Uptime Kuma runs on a separate admin VM**, not on the server it watches, so a failure of the game VM can't also silence its monitor.
 - It checks, every 60 seconds: the game's TCP port, SSH on the VM, the NAS's NFS port (the backup target), the hypervisor's web UI and an internet reachability ping. The checks are layered so a single red result points at the failing piece: game port red with SSH green means the server process, everything red with internet red means the uplink.
+- **Alerting:** monitors push to the admin's phone through ntfy, with down events at the highest priority. The topic is a long random string kept out of the repo (anyone who knows a public ntfy topic can read it), and alerts carry only monitor names and up/down state.
 - **No new exposure:** every check uses a port the VM already accepts from the LAN, so the VM's firewall didn't change. The dashboard is LAN-only (never port-forwarded) and its admin login requires a strong password plus **two-factor authentication (TOTP)**.
 
 ### Configuration integrity
 - The public-IP watcher only rewrites config when **two independent services agree** on a valid public address, and it rejects private, CGNAT, loopback and link-local results, so a bad lookup or a transient private WAN lease can't redirect players. It backs up both files before every change.
+
+### Patch management
+- **Game server:** `autoupdate.sh` checks Mojang's download feed every 30 minutes and updates only when a **newer** server version exists: in-game warning, then about a minute of restart, then an optional phone alert. It acts only when it can read both the latest and the running version, never downgrades, and records each version it attempted so a failed update can't restart the server in a loop.
+- **Containers:** a weekly `docker compose pull` catches image and broadcaster updates.
+- **OS:** unattended security updates on the VM.
 
 ### Resilience and integrity
 - **Live hot-backups every 2 hours** using Bedrock's official sequence (`save hold`, `save query`, copy each file truncated to its reported length, `save resume`). The copies are consistent, with no downtime.

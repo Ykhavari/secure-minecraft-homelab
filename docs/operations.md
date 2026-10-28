@@ -60,6 +60,18 @@ Backups are written to the NAS share mounted at `/mnt/mc-backups`; if it isn't m
 */5 * * * * /opt/minecraft/ipwatch.sh >> /var/log/mc-ipwatch.log 2>&1   # root crontab: public-IP watcher
 ```
 
+## Automatic updates
+
+`autoupdate.sh` runs from cron every 30 minutes and does nothing unless Mojang has released a newer Bedrock server:
+
+```cron
+*/30 * * * * /opt/minecraft/autoupdate.sh >> ~/mc-autoupdate.log 2>&1
+```
+
+- Test without changing anything: `DRYRUN=1 ./autoupdate.sh` (prints the latest and running versions).
+- Warning length: `UPDATE_WARNING` in `.env` (seconds, default 300). Optional phone alert: `NTFY_TOPIC` in `.env`.
+- To update immediately instead: `./mc update`.
+
 ## Monitoring
 
 Uptime Kuma (`monitoring/docker-compose.yml`) runs on a separate admin VM and checks every 60 seconds:
@@ -72,7 +84,7 @@ Uptime Kuma (`monitoring/docker-compose.yml`) runs on a separate admin VM and ch
 | Hypervisor | HTTPS to the Proxmox UI (self-signed cert allowed) | The host itself has a problem |
 | Internet | Ping a public resolver | The uplink is down, not the servers |
 
-Retries are set to 2 so a single dropped check doesn't raise a false alarm. Update with `docker compose pull && docker compose up -d`; monitors and history live in `./data`.
+Retries are set to 2 so a single dropped check doesn't raise a false alarm. Down and recovery events push to the admin's phone through ntfy (down events at urgent priority). Update with `docker compose pull && docker compose up -d`; monitors and history live in `./data`.
 
 ## Restore
 

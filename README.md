@@ -79,7 +79,7 @@ This is the core of the project. Full detail is in **[docs/security.md](docs/sec
 | Host hardening | Minimal Debian, SSH **key-only** from the LAN, UFW default-deny, unattended security updates |
 | Container hardening | Non-root processes, `no-new-privileges`, one narrowly scoped capability, log rotation |
 | Management | Container dashboard (Portainer agent) reachable **only from one admin VM**, enforced by the hypervisor firewall |
-| Monitoring | **Uptime Kuma** on a separate admin VM checks the game port, SSH, the backup NAS, the hypervisor and internet every 60 s, using only ports the VM already allows (no new firewall holes); dashboard is LAN-only with 2FA |
+| Monitoring | **Uptime Kuma** on a separate admin VM checks the game port, SSH, the backup NAS, the hypervisor and internet every 60 s, using only ports the VM already allows (no new firewall holes); dashboard is LAN-only with 2FA; **push alerts** to the admin's phone (ntfy) |
 | Resilience | Consistent live backups (Bedrock's hot-backup API), off-VM copies, VM-level backups, clean-shutdown tuning |
 | Secrets hygiene | `.env`, tokens, keys and world data are git-ignored; every IP and identifier in this repo is a placeholder |
 
@@ -94,6 +94,7 @@ Real-world troubleshooting is most of what this build was. Full write-ups are in
 - **Locking myself out safely.** Every firewall change was applied with an automatic 10-minute rollback, cancelled only after I'd proved access still worked.
 - **A WAN that quietly went private.** Correlating firewall and server logs showed the WAN had briefly taken a private lease after a gateway hiccup, which disabled the port forwards. One obvious fix cut the connection entirely and was reverted; the safe fix is shorter gateway leases.
 - **Off-VM backups that hung.** The NFS mount stalled because the VM's default-deny firewall had no exception for the NAS yet: proof the segmentation works. One ordered rule fixed it.
+- **"The host is using an older version."** Consoles auto-update the day Mojang ships; the server didn't. A version-aware auto-updater now checks every 30 minutes and only restarts when a newer server actually exists.
 - **A bot that befriended strangers.** A separate auto-accept setting was switched on; I found it by reading the live config file.
 
 ## Known limitations
@@ -114,6 +115,7 @@ server/
   snapshot.sh               Live hot-backup (no downtime) using save hold/query/resume
   backup.sh                 Nightly full backup with in-game warning
   ipwatch.sh                Follows a changing public IP (two-source check, warned restart)
+  autoupdate.sh             Updates only when Mojang ships a newer server (warned, no downgrades, loop-guarded)
   KIT.md                    Quick reference for the kit
 monitoring/
   docker-compose.yml        Uptime Kuma, run on a separate LAN-only admin VM
@@ -141,7 +143,8 @@ These map closely to CompTIA Security+ domains: security architecture (segmentat
 - [ ] Centralized log monitoring and alerting for the VM and firewall
 - [ ] Further network segmentation for internet-facing services
 - [x] LAN-only container management dashboard (Portainer agent, one admin VM only)
-- [x] Uptime monitoring (Uptime Kuma, external to the monitored VM)
+- [x] Uptime monitoring with push alerts (Uptime Kuma, external to the monitored VM)
+- [x] Automatic server updates the day Mojang releases them (`autoupdate.sh`)
 - [x] Automate the public-IP update if the ISP changes it (`ipwatch.sh`)
 
 ## Credits
