@@ -263,3 +263,19 @@ docker compose restart broadcast
 **Fix:** deleted and reinstalled the app, allowed notifications at the first prompt, re-subscribed to the topic on the default server, then tested with the phone locked and the app closed. Lock-screen alerts worked.
 
 **Lesson:** test the whole alert path end to end, including the last hop to the person, in the state they'll actually be in (phone locked, app closed). An alert that only shows when you go looking isn't an alert.
+
+---
+
+## 20. After an update, every join hung at "Connecting to multiplayer game"
+
+**Symptom:** right after updating for a new Minecraft release, consoles failed with *InitialConnection-81* or hung while connecting. The server was up and listening, and a packet capture on the VM showed no player traffic arriving at all.
+
+**Investigation:** the broadcaster's log had the answer: `Failed to relay offer ... to <public-ip>:19132 ... connect timed out`. The new broadcaster build (160) no longer hands consoles the server's address; it **relays each join to the server itself**. Its config had been migrated into a new format, and the old public IP was carried into the new `remote-address` setting. The bot was trying to reach a server on the same VM by going out through the firewall and back in, which reflection rules deliberately don't allow from that host.
+
+**Fix:** set `remote-address: 127.0.0.1` (the bot and server share the VM's network). Joins worked again immediately. Then made it permanent:
+- `postupdate.sh` runs after every update, re-applies the settings this design depends on, and verifies the bot signed in.
+- every update backs up the bot's config first.
+- `botwatch.sh` pushes a phone alert within 5 minutes if the bot logs errors like this one.
+- `ipwatch.sh` no longer edits the bot's config at all.
+
+**Lesson:** an update can change *how* a component works, not just its version, and migrate your config into the new shape with old assumptions. After every update, re-assert the configuration you depend on and verify the outcome, instead of trusting that settings survived.

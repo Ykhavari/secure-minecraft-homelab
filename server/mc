@@ -56,9 +56,16 @@ case "$action" in
   logs)   docker compose logs -f --tail=100 bedrock ;;
   xbox-login) docker compose logs -f --tail=50 broadcast ;;
   update)
+    # Back up the bot's config first, then re-apply and verify its settings after,
+    # because a new broadcaster build can migrate config.yml (see postupdate.sh)
+    SUDO=""; [ "$(id -u)" -eq 0 ] || SUDO=sudo
+    $SUDO cp -p xbox/config.yml xbox/config.yml.bak-update 2>/dev/null || true
     docker compose pull
     send say "Server restarting for an update in 10 seconds" || true
+    sleep 10
     docker compose up -d --force-recreate
+    sleep 60
+    $SUDO ./postupdate.sh
     ;;
   backup)   ./backup.sh ;;
   snapshot) ./snapshot.sh ;;

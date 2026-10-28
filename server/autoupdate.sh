@@ -2,8 +2,9 @@
 # Automatic Bedrock updates. Every run checks Mojang's download feed; when a NEWER
 # server version is out, it warns players in-game, then updates the server and bot.
 # When the server is already current it does nothing (nobody gets kicked).
-# Cron (every 30 minutes):
-#   */30 * * * * /opt/minecraft/autoupdate.sh >> /home/USER/mc-autoupdate.log 2>&1
+# After updating, ./mc update runs postupdate.sh to re-apply the bot's settings.
+# Root crontab (every 30 minutes, offset from the backup and snapshot times):
+#   15,45 * * * * /opt/minecraft/autoupdate.sh >> /var/log/mc-autoupdate.log 2>&1
 # Test without changing anything:  DRYRUN=1 ./autoupdate.sh
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -50,13 +51,13 @@ fi
 say "Minecraft update: restarting in 1 minute"; sleep 50
 say "Restarting now. Rejoin in about a minute."; sleep 10
 
-docker compose pull -q
-docker compose up -d --force-recreate   # the server downloads the new version as it starts
-sleep 90
+# Backs up the bot config, updates both containers (the server downloads the new
+# version as it starts), then re-applies and verifies the bot's settings
+if ./mc update; then check="all checks passed"; else check="NEEDS ATTENTION: run sudo ./postupdate.sh"; fi
 now=$(server_version)
-echo "$(ts) update finished; server now reports '${now:-unknown}'"
+echo "$(ts) update finished; server now reports '${now:-unknown}'; $check"
 
 if [ -n "${NTFY_TOPIC:-}" ]; then        # optional phone alert
-  curl -fsS -m 10 -H "Title: Minecraft server updated" -d "Bedrock $current -> ${now:-$latest}" \
+  curl -fsS -m 10 -H "Title: Minecraft server updated" -d "Bedrock $current -> ${now:-$latest}; $check" \
     "https://ntfy.sh/$NTFY_TOPIC" >/dev/null || true
 fi

@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
-# Public IP watcher. If the home public IP changes, update the two places that
-# advertise it (server.properties and the bot's config.yml) and restart both
-# containers, with an in-game warning first. Does nothing when the IP is unchanged.
+# Public IP watcher. If the home public IP changes, update server-udp-ports (the
+# address the server advertises for gameplay) and restart the server, with an
+# in-game warning first. Does nothing when the IP is unchanged. The bot is not
+# touched: since broadcaster build 160 it relays joins to the server locally
+# (remote-address 127.0.0.1), so it no longer needs the public IP.
 # Runs from root's crontab every 5 minutes:
 #   */5 * * * * /opt/minecraft/ipwatch.sh >> /var/log/mc-ipwatch.log 2>&1
 set -euo pipefail
 cd "$(dirname "$0")"
 
 PROPS=data/server.properties
-BOTCFG=xbox/config.yml
 
 valid_public() {  # dotted IPv4, not private / CGNAT / loopback / link-local
   [[ "$1" =~ ^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$ ]] || return 1
@@ -36,13 +37,10 @@ CUR=$(sed -n 's/^server-udp-ports=\([0-9.]*\):.*/\1/p' "$PROPS")
 
 echo "$(date '+%F %T') public IP changed: '$CUR' -> '$NEW'"
 cp "$PROPS" "$PROPS.bak-ip"
-cp "$BOTCFG" "$BOTCFG.bak-ip"
 sed -i "s/^server-udp-ports=.*/server-udp-ports=$NEW:19140-19149:19140-19149/" "$PROPS"
-sed -i "s/^\(\s*ip:\).*/\1 $NEW/" "$BOTCFG"
 chown 1000:1000 "$PROPS" "$PROPS.bak-ip"
-chown 1001:1001 "$BOTCFG" "$BOTCFG.bak-ip"
 
 docker exec -u 0 bedrock send-command say "Network change: server restarting in 30 seconds" >/dev/null 2>&1 || true
 sleep 30
-docker compose restart bedrock broadcast
+docker compose restart bedrock
 echo "$(date '+%F %T') updated to $NEW and restarted"

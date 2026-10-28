@@ -64,9 +64,15 @@ Backups are written to the NAS share mounted at `/mnt/mc-backups`; if it isn't m
 
 `autoupdate.sh` runs from cron every 30 minutes and does nothing unless Mojang has released a newer Bedrock server:
 
+Root crontab (offset from the backup and snapshot times so they never overlap):
+
 ```cron
-*/30 * * * * /opt/minecraft/autoupdate.sh >> ~/mc-autoupdate.log 2>&1
+15,45 * * * * /opt/minecraft/autoupdate.sh >> /var/log/mc-autoupdate.log 2>&1   # new Bedrock version? update
+*/5 * * * *   /opt/minecraft/botwatch.sh   >> /var/log/mc-botwatch.log   2>&1   # alert on down/errors
+30 5 * * 0    cd /opt/minecraft && ./mc update >> /var/log/mc-update.log 2>&1  # weekly catch-all
 ```
+
+Every update (automatic or `./mc update`) backs up `xbox/config.yml` to `config.yml.bak-update`, then runs `postupdate.sh`, which re-applies the bot's settings and confirms it signed in. Run it by hand any time with `sudo ./postupdate.sh`.
 
 - Test without changing anything: `DRYRUN=1 ./autoupdate.sh` (prints the latest and running versions).
 - Warning length: `UPDATE_WARNING` in `.env` (seconds, default 300). Optional phone alert: `NTFY_TOPIC` in `.env`.

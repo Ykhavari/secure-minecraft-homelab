@@ -95,6 +95,7 @@ Real-world troubleshooting is most of what this build was. Full write-ups are in
 - **A WAN that quietly went private.** Correlating firewall and server logs showed the WAN had briefly taken a private lease after a gateway hiccup, which disabled the port forwards. One obvious fix cut the connection entirely and was reverted; the safe fix is shorter gateway leases.
 - **Off-VM backups that hung.** The NFS mount stalled because the VM's default-deny firewall had no exception for the NAS yet: proof the segmentation works. One ordered rule fixed it.
 - **"The host is using an older version."** Consoles auto-update the day Mojang ships; the server didn't. A version-aware auto-updater now checks every 30 minutes and only restarts when a newer server actually exists.
+- **An update that quietly broke joins.** A new broadcaster build started relaying joins itself and migrated its config with the public IP as the relay target, so every join hairpinned into the firewall and timed out. Fixed with a local relay address, then made permanent: every update now re-applies known-good settings, and a watchdog alerts on bot errors within 5 minutes.
 - **A bot that befriended strangers.** A separate auto-accept setting was switched on; I found it by reading the live config file.
 
 ## Known limitations
@@ -116,6 +117,8 @@ server/
   backup.sh                 Nightly full backup with in-game warning
   ipwatch.sh                Follows a changing public IP (two-source check, warned restart)
   autoupdate.sh             Updates only when Mojang ships a newer server (warned, no downgrades, loop-guarded)
+  postupdate.sh             After any update: re-applies the bot's settings and verifies it signed in
+  botwatch.sh               Phone alert if a container is down or the bot logs errors (rate-limited)
   KIT.md                    Quick reference for the kit
 monitoring/
   docker-compose.yml        Uptime Kuma, run on a separate LAN-only admin VM

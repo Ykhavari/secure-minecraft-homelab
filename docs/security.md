@@ -86,6 +86,8 @@ The VM can reach the internet (Xbox Live, Mojang updates, Debian mirrors) and **
 ### Patch management
 - **Game server:** `autoupdate.sh` checks Mojang's download feed every 30 minutes and updates only when a **newer** server version exists: in-game warning, then about a minute of restart, then an optional phone alert. It acts only when it can read both the latest and the running version, never downgrades, and records each version it attempted so a failed update can't restart the server in a loop.
 - **Containers:** a weekly `docker compose pull` catches image and broadcaster updates.
+- **Configuration drift after updates:** every update backs up the broadcaster's config, then `postupdate.sh` re-applies the settings this design depends on (local relay address, no auto-accept, no auto-unfriend) and verifies the bot signed in. An update can change software, but it can't silently undo a security decision.
+- **Watchdog:** `botwatch.sh` checks every 5 minutes that both containers run and the bot isn't logging errors, and pushes one alert per problem per hour plus an all-clear.
 - **OS:** unattended security updates on the VM.
 
 ### Resilience and integrity
