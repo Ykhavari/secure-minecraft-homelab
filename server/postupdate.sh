@@ -31,10 +31,15 @@ if [ "$before" != "$(sha256sum "$CFG")" ]; then
   sleep 5
 fi
 
-# The bot logs this once it is listed on Xbox Live again (allow up to a minute)
+# Signed in since its most recent start? (the bot logs this once it is listed on
+# Xbox Live again; allow up to a minute)
+signed_in() {
+  docker logs broadcast 2>&1 | tr -d '\r' \
+    | awk '/Starting MCXboxBroadcast/{ok=0} /session was successful/{ok=1} END{exit !ok}'
+}
 ok=no
 for _ in $(seq 1 12); do
-  if docker compose logs --since 10m broadcast 2>&1 | grep -q 'session was successful'; then ok=yes; break; fi
+  if signed_in; then ok=yes; break; fi
   sleep 5
 done
 running=$(docker inspect -f '{{.State.Running}}' bedrock 2>/dev/null || echo false)
