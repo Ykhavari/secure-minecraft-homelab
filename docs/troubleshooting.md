@@ -279,3 +279,15 @@ docker compose restart broadcast
 - `ipwatch.sh` no longer edits the bot's config at all.
 
 **Lesson:** an update can change *how* a component works, not just its version, and migrate your config into the new shape with old assumptions. After every update, re-assert the configuration you depend on and verify the outcome, instead of trusting that settings survived.
+
+---
+
+## 21. The new watchdog cried wolf overnight
+
+**Symptom:** the first night with `botwatch.sh` produced four "server problem" alerts (*Failed to update session*), each followed five minutes later by "OK again". Nobody was disconnected and the server was never affected.
+
+**Root cause:** the broadcaster refreshes its Xbox Live listing every few seconds. Occasionally one refresh fails on Xbox Live's side and the next succeeds. The watchdog treated any `ERROR` line as an outage.
+
+**Fix:** split alerts by what they mean for players. "Failed to relay offer" (joins actually failing) still alerts immediately. Any other bot error only alerts if there has also been **no successful refresh for 10 minutes**, meaning the bot is genuinely stuck. Tested against the overnight pattern (silent), a stuck bot, a relay failure and a stopped container (all alert).
+
+**Lesson:** an alert should mean "a person needs to act". Alerting on raw error lines instead of on impact trains you to ignore the phone, which is worse than no alert at all.

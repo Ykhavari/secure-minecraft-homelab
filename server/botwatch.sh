@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Every 5 minutes: push a phone alert (ntfy) if the server or bot container is down,
-# or the bot is logging errors (for example "Failed to relay offer", which means
-# joins are failing). One alert per problem per hour, then an all-clear when it's fixed.
+# joins are failing ("Failed to relay offer"), or the bot is stuck (errors with no
+# successful Xbox Live refresh for 10 minutes). Brief Xbox Live hiccups that fix
+# themselves don't alert. One alert per problem per hour, then an all-clear.
 # Root crontab:
 #   */5 * * * * /opt/minecraft/botwatch.sh >> /var/log/mc-botwatch.log 2>&1
 set -euo pipefail
@@ -20,9 +21,21 @@ for c in bedrock broadcast; do
   [ "$(docker inspect -f '{{.State.Running}}' "$c" 2>/dev/null || true)" = true ] \
     || problems+=("$c container is not running")
 done
-errs=$(docker logs --since 6m broadcast 2>&1 | tr -d '\r' | grep 'ERROR' \
-  | grep -oE 'Failed to [a-z]+( [a-z]+)?|[A-Za-z.]*Exception|could not be reached' | sort -u | head -3 | paste -sd ';' - || true)
-[ -n "$errs" ] && problems+=("bot errors: $errs")
+recent=$(docker logs --since 6m broadcast 2>&1 | tr -d '\r' || true)
+# Joins failing: alert straight away
+if grep -q 'Failed to relay offer' <<<"$recent"; then
+  problems+=("joins are failing: the bot can't relay joins to the server")
+fi
+# Any other bot error: the bot refreshes its Xbox Live listing every few seconds and
+# an occasional refresh fails on Xbox Live's side, then the next one succeeds. Only
+# alert when it's stuck: errors AND no successful refresh in the last 10 minutes.
+if grep 'ERROR' <<<"$recent" | grep -vq 'Failed to relay offer'; then
+  if ! docker logs --since 10m broadcast 2>&1 | grep -qE 'Updated session|session was successful'; then
+    errs=$(grep 'ERROR' <<<"$recent" | grep -oE 'Failed to [a-z]+( [a-z]+)?|[A-Za-z.]*Exception' \
+      | sort -u | head -3 | paste -sd ';' - || true)
+    problems+=("bot stuck: no Xbox Live refresh for 10 minutes (${errs:-errors})")
+  fi
+fi
 
 msg=""
 [ ${#problems[@]} -gt 0 ] && msg=$(printf '%s\n' "${problems[@]}" | paste -sd '|' -)
